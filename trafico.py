@@ -2,6 +2,14 @@ import glob
 import os
 import sys
 import time
+try:
+    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
+        sys.version_info.major,
+        sys.version_info.minor,
+        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+except IndexError:
+    pass
+
 import random
 import carla
 
@@ -181,7 +189,7 @@ def main():
     
     # Number of vehicles and pedestrians to spawn
     number_of_vehicles = 20
-    number_of_pedestrians = 10
+    number_of_pedestrians = 0
 
     # Spawn vehicles in batch using the function
     vehicle_actor_ids = spawn_vehicles(client, world, traffic_manager, blueprint_library, spawn_points, number_of_vehicles)
