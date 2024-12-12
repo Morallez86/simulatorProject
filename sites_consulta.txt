@@ -1,1 +1,3 @@
 https://dev.epicgames.com/documentation/en-us/unreal-engine/rawinput-plugin?application_version=4.27: configuração de raw input.
+
+D:\carla\Unreal\CarlaUE4\Plugins\Carla\Source\Carla\Sensor: colocar os ficheiros de SafeDistanceSensor
