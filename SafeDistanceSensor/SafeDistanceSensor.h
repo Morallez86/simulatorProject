@@ -5,7 +5,7 @@
 #include "Carla/Actor/ActorDefinition.h"
 #include "Carla/Actor/ActorDescription.h"
 
-#include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
 
 #include "SafeDistanceSensor.generated.h"
 
@@ -27,7 +27,9 @@ public:
 	virtual void PrePhysTick(float DeltaSeconds) override;
 
 private:
+	// Helper function to calculate the distance between two actors
+	float CalculateDistance(const AActor* Actor1, const AActor* Actor2) const;
 
 	UPROPERTY()
-		UBoxComponent* Box = nullptr;
+	USphereComponent* Sphere = nullptr;
 };

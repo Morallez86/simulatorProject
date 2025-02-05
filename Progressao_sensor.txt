@@ -1,3 +1,43 @@
+Step 1: Change detection to detect walkers instead of vehicles (safedistancesensor.cpp):
+#include "Carla/Walker/WalkerBase.h"
+Box->GetOverlappingActors(DetectedActors, AWalkerBase::StaticClass());
+
+Step 2: Change box to a sphere (safedistancesensor.cpp/.h):
+
+#pragma once
+
+#include "Carla/Sensor/Sensor.h"
+
+#include "Carla/Actor/ActorDefinition.h"
+#include "Carla/Actor/ActorDescription.h"
+
+#include "Components/SphereComponent.h"
+
+#include "SafeDistanceSensor.generated.h"
+
+UCLASS()
+class CARLA_API ASafeDistanceSensor : public ASensor
+{
+	GENERATED_BODY()
+
+public:
+
+	ASafeDistanceSensor(const FObjectInitializer& ObjectInitializer);
+
+	static FActorDefinition GetSensorDefinition();
+
+	void Set(const FActorDescription& ActorDescription) override;
+
+	void SetOwner(AActor* Owner) override;
+
+	virtual void PrePhysTick(float DeltaSeconds) override;
+
+private:
+
+	UPROPERTY()
+	USphereComponent* Sphere = nullptr;
+};
+
 #include "Carla.h"
 #include "Carla/Sensor/SafeDistanceSensor.h"
 
@@ -5,7 +45,6 @@
 #include "Carla/Game/CarlaEpisode.h"
 #include "Carla/Util/BoundingBoxCalculator.h"
 #include "Carla/Walker/WalkerBase.h"
-#include "Carla/Vehicle/CarlaWheeledVehicle.h"
 
 ASafeDistanceSensor::ASafeDistanceSensor(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -60,63 +99,28 @@ void ASafeDistanceSensor::SetOwner(AActor* Owner)
     Sphere->SetRelativeLocation(FVector{ 0.0f, 0.0f, BoundingBox.Extent.Z });
 }
 
-float ASafeDistanceSensor::CalculateDistance(const AActor* Actor1, const AActor* Actor2) const
-{
-    if (Actor1 && Actor2)
-    {
-        return FVector::Distance(Actor1->GetActorLocation(), Actor2->GetActorLocation());
-    }
-    return FLT_MAX; // Return a large value if either actor is invalid
-}
-
 void ASafeDistanceSensor::PrePhysTick(float DeltaSeconds)
 {
     Super::PrePhysTick(DeltaSeconds);
 
-    // Detect overlapping walkers
-    TSet<AActor*> DetectedWalkers;
-    Sphere->GetOverlappingActors(DetectedWalkers, AWalkerBase::StaticClass());
-    DetectedWalkers.Remove(GetOwner());
+    TSet<AActor*> DetectedActors;
+    Sphere->GetOverlappingActors(DetectedActors, AWalkerBase::StaticClass());
+    DetectedActors.Remove(GetOwner());
 
-    AActor* NearestWalker = nullptr;
-    float NearestDistance = FLT_MAX;
-
-    // Find the nearest walker
-    for (AActor* Walker : DetectedWalkers)
+    if (DetectedActors.Num() > 0)
     {
-        float Distance = CalculateDistance(GetOwner(), Walker);
-        if (Distance < NearestDistance)
+        // Debugging log to verify detected actors
+        for (AActorA* Actor : DetectedActors)
         {
-            NearestDistance = Distance;
-            NearestWalker = Walker;
+            UE_LOG(LogCarla, Warning, TEXT("SafeDistanceSensor detected actor: %s"), *Actor->GetName());
         }
-    }
 
-    // Log the nearest walker (if any)
-    if (NearestWalker)
-    {
-        UE_LOG(LogCarla, Warning, TEXT("Nearest walker: %s, Distance: %f meters"),
-            *NearestWalker->GetName(), NearestDistance / 100.0f); // Convert cm to meters
+        // Send data for detected actors
+        auto Stream = GetDataStream(*this);
+        Stream.SerializeAndSend(*this, GetEpisode(), DetectedActors);
     }
     else
     {
-        UE_LOG(LogCarla, Warning, TEXT("No walkers detected within range."));
+        UE_LOG(LogCarla, Warning, TEXT("SafeDistanceSensor detected no actors in proximity."));
     }
-
-    // Detect overlapping vehicles
-    TSet<AActor*> DetectedVehicles;
-    Sphere->GetOverlappingActors(DetectedVehicles, ACarlaWheeledVehicle::StaticClass());
-    DetectedVehicles.Remove(GetOwner());
-
-    if (DetectedVehicles.Num() > 0)
-    {
-        for (AActor* Vehicle : DetectedVehicles)
-        {
-            UE_LOG(LogCarla, Warning, TEXT("SafeDistanceSensor detected vehicle: %s"), *Vehicle->GetName());
-        }
-    }
-
-    // Send data for detected actors (if needed)
-    auto Stream = GetDataStream(*this);
-    Stream.SerializeAndSend(*this, GetEpisode(), DetectedWalkers.Union(DetectedVehicles));
 }
