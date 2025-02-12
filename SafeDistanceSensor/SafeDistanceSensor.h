@@ -9,27 +9,43 @@
 
 #include "SafeDistanceSensor.generated.h"
 
+USTRUCT()
+struct FTrackedWalker
+{
+    GENERATED_BODY()
+
+    FVector Location;
+    float TimeSinceLastSeen;
+
+    FTrackedWalker() : Location(FVector::ZeroVector), TimeSinceLastSeen(0.0f) {}
+    FTrackedWalker(FVector InLocation, float InTimeSinceLastSeen)
+        : Location(InLocation), TimeSinceLastSeen(InTimeSinceLastSeen) {}
+};
+
 UCLASS()
 class CARLA_API ASafeDistanceSensor : public ASensor
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
 
-	ASafeDistanceSensor(const FObjectInitializer& ObjectInitializer);
+    ASafeDistanceSensor(const FObjectInitializer& ObjectInitializer);
 
-	static FActorDefinition GetSensorDefinition();
+    static FActorDefinition GetSensorDefinition();
 
-	void Set(const FActorDescription& ActorDescription) override;
+    void Set(const FActorDescription& ActorDescription) override;
 
-	void SetOwner(AActor* Owner) override;
+    void SetOwner(AActor* Owner) override;
 
-	virtual void PrePhysTick(float DeltaSeconds) override;
+    virtual void PrePhysTick(float DeltaSeconds) override;
 
 private:
-	// Helper function to calculate the distance between two actors
-	float CalculateDistance(const AActor* Actor1, const AActor* Actor2) const;
+    // Helper function to calculate the distance between two actors
+    float CalculateDistance(const AActor* Actor1, const AActor* Actor2) const;
 
-	UPROPERTY()
-	USphereComponent* Sphere = nullptr;
+    UPROPERTY()
+    USphereComponent* Sphere = nullptr;
+
+    // Map storing walkers: Key (Walker ID) → Struct (Location, TimeSinceLastSeen)
+    TMap<int32, FTrackedWalker> TrackedWalkers;
 };
