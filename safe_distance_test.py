@@ -1,3 +1,15 @@
+import glob
+import os
+import sys
+
+try:
+    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
+        sys.version_info.major,
+        sys.version_info.minor,
+        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+except IndexError:
+    pass
+
 import carla
 import weakref
 import time
@@ -51,7 +63,7 @@ def main():
             print("Listening to Safe Distance events...")
 
         # Wait for 5 seconds before spawning the walker
-        time.sleep(10)
+        time.sleep(5)
 
         # Spawn a walker near the car
         walker_bp = random.choice(blueprint_library.filter('walker.*'))
@@ -63,8 +75,35 @@ def main():
         walker = world.spawn_actor(walker_bp, walker_transform)
         print(f"Spawned walker: {walker.type_id} at {walker_transform.location}")
 
+        # Spawn an extra vehicle next to the walker
+        vehicle_bp = random.choice(blueprint_library.filter('vehicle.*'))
+        vehicle_transform = carla.Transform(
+            walker_transform.location + carla.Location(x=0, y=4, z=0),  # Spawn vehicle near the walker
+            walker_transform.rotation
+        )
+        extra_vehicle = world.spawn_actor(vehicle_bp, vehicle_transform)
+        print(f"Spawned extra vehicle: {extra_vehicle.type_id} at {vehicle_transform.location}")
+
+        # Attach the Safe Distance Sensor to the new vehicle
+        sensor_transform = carla.Transform(carla.Location(z=0))  # Place it above the vehicle
+        extra_vehicle_sensor = world.spawn_actor(
+            safe_distance_sensor_bp, 
+            sensor_transform, 
+            attach_to=extra_vehicle
+        )
+        print("Safe Distance Sensor attached to the extra vehicle.")
+
+        # Define the callback for the extra vehicle's sensor
+        def extra_vehicle_callback(event):
+            for actor_id in event:
+                vehicle = world_ref().get_actor(actor_id)
+                print(f"Extra Vehicle detected a vehicle too close: {vehicle.type_id}")
+
+        # Start listening for Safe Distance events for the extra vehicle
+        extra_vehicle_sensor.listen(extra_vehicle_callback)
+        print("Extra vehicle listening to Safe Distance events...")
         # Let the simulation run for a while
-        time.sleep(30)
+        time.sleep(90)
 
     except Exception as e:
         print(f"An error occurred: {e}")
