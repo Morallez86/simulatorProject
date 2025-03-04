@@ -13,14 +13,13 @@ struct FSharedWalkerData
 {
     GENERATED_BODY()
 
-    int32 WalkerID;     // Unique ID of the walker
-    FVector Location;   // Walker's location
-    float Timestamp;    // Time when the walker was detected
-    int32 TTL;          // Time-to-live for data propagation
+    int32 WalkerID;
+    FVector Location;
+    float Timestamp;
 
-    FSharedWalkerData() : WalkerID(-1), Location(FVector::ZeroVector), Timestamp(0.0f), TTL(3) {}
-    FSharedWalkerData(int32 InWalkerID, FVector InLocation, float InTimestamp, int32 InTTL)
-        : WalkerID(InWalkerID), Location(InLocation), Timestamp(InTimestamp), TTL(InTTL) {}
+    FSharedWalkerData() : WalkerID(-1), Location(FVector::ZeroVector), Timestamp(0.0f) {}
+    FSharedWalkerData(int32 InWalkerID, FVector InLocation, float InTimestamp)
+        : WalkerID(InWalkerID), Location(InLocation), Timestamp(InTimestamp) {}
 };
 
 UCLASS()
@@ -36,26 +35,21 @@ public:
     void SetOwner(AActor* Owner) override;
     virtual void PrePhysTick(float DeltaSeconds) override;
 
-    // **Blueprint Function to Get Tracked Walkers**
-    UFUNCTION(BlueprintCallable, Category = "SafeDistanceSensor")
-    TArray<FVector> GetTrackedWalkerLocations() const;
-
-    UFUNCTION(BlueprintCallable, Category = "SafeDistanceSensor")
-    TArray<FVector> GetRadarWalkerPositions(const TArray<FVector>& WalkerPositions) const;
+protected:
+    virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-    // Broadcast walker data to nearby vehicles
-    void BroadcastWalkerData(const FSharedWalkerData& WalkerData);
+    void UpdateWalkerData(int32 WalkerID, const FVector& Location, float Timestamp);
+    void PeriodicBroadcast();
 
-    // Receive and process walker data from other vehicles
-    void ReceiveWalkerData(const FSharedWalkerData& WalkerData);
-
-    // Forward walker data to other vehicles with reduced TTL
-    void ForwardWalkerData(const FSharedWalkerData& WalkerData);
+    UFUNCTION(BlueprintCallable, Category = "SafeDistanceSensor")
+    TArray<FVector> GetTrackedWalkerLocations() const;
 
     UPROPERTY()
     USphereComponent* Sphere = nullptr;
 
-    // Map storing tracked walkers: Key (Walker ID) → Struct (Walker data)
     TMap<int32, FSharedWalkerData> TrackedWalkers;
+    FTimerHandle BroadcastTimerHandle;
+    FCriticalSection DataLock;
 };
