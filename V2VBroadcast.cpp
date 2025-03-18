@@ -20,7 +20,31 @@ AV2VBroadcast::AV2VBroadcast(const FObjectInitializer& ObjectInitializer)
 void AV2VBroadcast::BeginPlay()
 {
     Super::BeginPlay();
+    TArray<AActor*> AttachedActors;
+    GetOwner()->GetAttachedActors(AttachedActors);
+    UE_LOG(LogCarla, Log, TEXT("Number of attached actors: %d"), AttachedActors.Num());
+    for (AActor* Actor : AttachedActors)
+    {
+        UE_LOG(LogCarla, Log, TEXT("Attached actor: %s"), *Actor->GetName());
+        AWalkerDetectionSensor* Sensor = Cast<AWalkerDetectionSensor>(Actor);
+        if (Sensor)
+        {
+            SetWalkerDetectionSensor(Sensor);
+            UE_LOG(LogCarla, Log, TEXT("WalkerDetectionSensor set successfully"));
+            break;
+        }
+    }
+    if (!WalkerDetectionSensor)
+    {
+        UE_LOG(LogCarla, Warning, TEXT("WalkerDetectionSensor not found among attached actors"));
+    }
     GetWorldTimerManager().SetTimer(BroadcastTimerHandle, this, &AV2VBroadcast::PeriodicBroadcast, 1.0f, true);
+}
+
+void AV2VBroadcast::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
+    GetWorldTimerManager().ClearTimer(BroadcastTimerHandle);
 }
 
 void AV2VBroadcast::PrePhysTick(float DeltaSeconds)
@@ -67,16 +91,27 @@ void AV2VBroadcast::SetWalkerDetectionSensor(AWalkerDetectionSensor* Sensor)
 
 void AV2VBroadcast::PeriodicBroadcast()
 {
-    if (!WalkerDetectionSensor) return;
+    UE_LOG(LogCarla, Log, TEXT("Periodic broadcast"));
+    if (!WalkerDetectionSensor) 
+    {
+        UE_LOG(LogCarla, Warning, TEXT("WalkerDetectionSensor is not set"));
+        return;
+    }
 
     FScopeLock Lock(&WalkerDetectionSensor->GetDataLock());
 
+    UE_LOG(LogCarla, Log, TEXT("After lock"));
+
     const TMap<int32, FSharedWalkerDatas>& TrackedWalkers = WalkerDetectionSensor->GetTrackedWalkers();
+    UE_LOG(LogCarla, Log, TEXT("Number of tracked walkers: %d"), TrackedWalkers.Num());
     if (TrackedWalkers.Num() == 0) return;
+    
+    UE_LOG(LogCarla, Log, TEXT("Sharing walker data with %d vehicles"), TrackedWalkers.Num());
 
     TSet<AActor*> NearbyVehicles;
     Sphere->GetOverlappingActors(NearbyVehicles, ACarlaWheeledVehicle::StaticClass());
     NearbyVehicles.Remove(GetOwner());
+    UE_LOG(LogCarla, Log, TEXT("Found %d nearby vehicles"), NearbyVehicles.Num());
 
     for (AActor* Vehicle : NearbyVehicles)
     {
@@ -93,6 +128,7 @@ void AV2VBroadcast::PeriodicBroadcast()
                 for (const auto& Entry : TrackedWalkers)
                 {
                     VehicleBroadcastActor->WalkerDetectionSensor->UpdateWalkerData(Entry.Key, Entry.Value.Location, Entry.Value.Timestamp);
+                    UE_LOG(LogCarla, Log, TEXT("Shared walker data with vehicle: %s"), *Vehicle->GetName());
                 }
             }
         }
