@@ -40,6 +40,7 @@ protected:
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+    void PerformLineTrace(float DeltaSeconds);
     void UpdateWalkerData(int32 WalkerID, const FVector& Location, float Timestamp);
     void PeriodicBroadcast();
 
@@ -52,4 +53,7 @@ private:
     TMap<int32, FSharedWalkerData> TrackedWalkers;
     FTimerHandle BroadcastTimerHandle;
     FCriticalSection DataLock;
+
+    float TraceRange;
+    float CurrentHorizontalAngle;
 };
