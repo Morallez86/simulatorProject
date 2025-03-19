@@ -20,9 +20,23 @@ AV2VBroadcast::AV2VBroadcast(const FObjectInitializer& ObjectInitializer)
 void AV2VBroadcast::BeginPlay()
 {
     Super::BeginPlay();
+
+    // Verify that the owner actor is valid
+    AActor* Owner = GetOwner();
+    if (!Owner)
+    {
+        UE_LOG(LogCarla, Error, TEXT("Owner actor is not valid"));
+        return;
+    }
+
+    UE_LOG(LogCarla, Log, TEXT("Owner actor: %s"), *Owner->GetName());
+
     TArray<AActor*> AttachedActors;
-    GetOwner()->GetAttachedActors(AttachedActors);
+    Owner->GetAttachedActors(AttachedActors);
+
+    // Log the number of attached actors
     UE_LOG(LogCarla, Log, TEXT("Number of attached actors: %d"), AttachedActors.Num());
+
     for (AActor* Actor : AttachedActors)
     {
         UE_LOG(LogCarla, Log, TEXT("Attached actor: %s"), *Actor->GetName());
@@ -34,10 +48,12 @@ void AV2VBroadcast::BeginPlay()
             break;
         }
     }
+
     if (!WalkerDetectionSensor)
     {
         UE_LOG(LogCarla, Warning, TEXT("WalkerDetectionSensor not found among attached actors"));
     }
+
     GetWorldTimerManager().SetTimer(BroadcastTimerHandle, this, &AV2VBroadcast::PeriodicBroadcast, 1.0f, true);
 }
 
