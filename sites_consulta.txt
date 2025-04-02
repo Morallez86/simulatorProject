@@ -5,3 +5,5 @@ D:\carla\Unreal\CarlaUE4\Plugins\Carla\Source\Carla\Sensor: colocar os ficheiros
 https://www.reddit.com/r/unrealengine/comments/13ih2hw/3d_widget_text_color_too_dark/
 
 https://nervous-land-34f.notion.site/How-to-Add-New-Variable-for-CARLA-Pipeline-18427a0ded11804498ace5b01ef72562
+
+https://www.youtube.com/watch?v=rsRIdE8Lfjw&t=2288s (mini-map)

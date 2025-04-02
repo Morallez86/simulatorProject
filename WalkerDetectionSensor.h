@@ -54,6 +54,9 @@ private:
     UFUNCTION(BlueprintCallable, Category = "WalkerDetectionSensor")
     TArray<FVector> GetTrackedWalkerLocations() const;
 
+    UFUNCTION(BlueprintCallable, Category = "WalkerDetectionSensor")
+    TArray<FVector> GetTrackedWalkerLocationsInWorld() const;
+
     float TraceRange; // Range of the line trace
     float CurrentHorizontalAngle; // Current angle of the line trace
 };

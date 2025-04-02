@@ -20,40 +20,12 @@ AV2VBroadcast::AV2VBroadcast(const FObjectInitializer& ObjectInitializer)
 void AV2VBroadcast::BeginPlay()
 {
     Super::BeginPlay();
-
-    // Verify that the owner actor is valid
-    AActor* Owner = GetOwner();
-    if (!Owner)
-    {
-        UE_LOG(LogCarla, Error, TEXT("Owner actor is not valid"));
-        return;
+    AActor* ParentActor = GetOwner();
+    if (ParentActor) {
+        UE_LOG(LogCarla, Warning, TEXT("Owner: %s"), *ParentActor->GetName());
+    } else {
+        UE_LOG(LogCarla, Warning, TEXT("No parent actor found!"));
     }
-
-    UE_LOG(LogCarla, Log, TEXT("Owner actor: %s"), *Owner->GetName());
-
-    TArray<AActor*> AttachedActors;
-    Owner->GetAttachedActors(AttachedActors);
-
-    // Log the number of attached actors
-    UE_LOG(LogCarla, Log, TEXT("Number of attached actors: %d"), AttachedActors.Num());
-
-    for (AActor* Actor : AttachedActors)
-    {
-        UE_LOG(LogCarla, Log, TEXT("Attached actor: %s"), *Actor->GetName());
-        AWalkerDetectionSensor* Sensor = Cast<AWalkerDetectionSensor>(Actor);
-        if (Sensor)
-        {
-            SetWalkerDetectionSensor(Sensor);
-            UE_LOG(LogCarla, Log, TEXT("WalkerDetectionSensor set successfully"));
-            break;
-        }
-    }
-
-    if (!WalkerDetectionSensor)
-    {
-        UE_LOG(LogCarla, Warning, TEXT("WalkerDetectionSensor not found among attached actors"));
-    }
-
     GetWorldTimerManager().SetTimer(BroadcastTimerHandle, this, &AV2VBroadcast::PeriodicBroadcast, 1.0f, true);
 }
 
@@ -92,6 +64,27 @@ void AV2VBroadcast::Set(const FActorDescription& Description)
 void AV2VBroadcast::SetOwner(AActor* NewOwner)
 {
     Super::SetOwner(NewOwner);
+
+    if (!IsValid(NewOwner))
+    {
+        UE_LOG(LogTemp, Error, TEXT("AV2VBroadcast::SetOwner called with an invalid owner!"));
+        return;
+    }
+
+    TArray<AActor*> AttachedActors;
+    NewOwner->GetAttachedActors(AttachedActors);
+
+    for (AActor* AttachedActor : AttachedActors)
+    {
+        if (IsValid(AttachedActor))
+        {
+            AWalkerDetectionSensor* Sensor = Cast<AWalkerDetectionSensor>(AttachedActor);
+            if (Sensor)
+            {
+                WalkerDetectionSensor = Sensor;
+            }
+        }
+    }
 }
 
 void AV2VBroadcast::SetBroadcastRadius(float Radius)

@@ -143,3 +143,13 @@ TArray<FVector> AWalkerDetectionSensor::GetTrackedWalkerLocations() const
 
     return RelativeLocations;
 }
+
+TArray<FVector> AWalkerDetectionSensor::GetTrackedWalkerLocationsInWorld() const
+{
+    TArray<FVector> WorldLocations;
+    for (const auto& Entry : TrackedWalkers)
+    {
+        WorldLocations.Add(Entry.Value.Location);
+    }
+    return WorldLocations;
+}
