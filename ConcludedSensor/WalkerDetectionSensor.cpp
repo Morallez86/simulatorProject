@@ -98,7 +98,7 @@ void AWalkerDetectionSensor::PerformLineTrace(float DeltaSeconds)
         AActor* HitActor = HitResult.GetActor();
         if (HitActor && HitActor->IsA(AWalkerBase::StaticClass()))
         {
-            UpdateWalkerData(HitActor->GetUniqueID(), HitResult.ImpactPoint, GetWorld()->GetTimeSeconds());
+            UpdateWalkerData(HitActor->GetUniqueID(), HitResult.ImpactPoint, GetWorld()->GetTimeSeconds(), true);
         }
     }
 
@@ -113,13 +113,13 @@ void AWalkerDetectionSensor::PerformLineTrace(float DeltaSeconds)
     DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Green, false, 0.1f, 0, 1.0f);
 }
 
-void AWalkerDetectionSensor::UpdateWalkerData(int32 WalkerID, const FVector& Location, float Timestamp)
+void AWalkerDetectionSensor::UpdateWalkerData(int32 WalkerID, const FVector& Location, float Timestamp, bool bDetectedByOwnVehicle)
 {
     FScopeLock Lock(&DataLock);
     auto* ExistingData = TrackedWalkers.Find(WalkerID);
     if (!ExistingData || Timestamp > ExistingData->Timestamp)
     {
-        TrackedWalkers.Add(WalkerID, FSharedWalkerDatas(WalkerID, Location, Timestamp));
+        TrackedWalkers.Add(WalkerID, FSharedWalkerDatas(WalkerID, Location, Timestamp, bDetectedByOwnVehicle));
     }
 }
 
@@ -152,4 +152,14 @@ TArray<FVector> AWalkerDetectionSensor::GetTrackedWalkerLocationsInWorld() const
         WorldLocations.Add(Entry.Value.Location);
     }
     return WorldLocations;
+}
+
+TArray<bool> AWalkerDetectionSensor::GetDetectedByOwnVehicleFlags() const
+{
+    TArray<bool> DetectedFlags;
+    for (const auto& WalkerData : TrackedWalkers)
+    {
+        DetectedFlags.Add(WalkerData.Value.bDetectedByOwnVehicle);
+    }
+    return DetectedFlags;
 }

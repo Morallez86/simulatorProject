@@ -136,7 +136,7 @@ void AV2VBroadcast::PeriodicBroadcast()
                 // Share walker data with the nearby vehicle
                 for (const auto& Entry : TrackedWalkers)
                 {
-                    VehicleBroadcastActor->WalkerDetectionSensor->UpdateWalkerData(Entry.Key, Entry.Value.Location, Entry.Value.Timestamp);
+                    VehicleBroadcastActor->WalkerDetectionSensor->UpdateWalkerData(Entry.Key, Entry.Value.Location, Entry.Value.Timestamp, false);
                     UE_LOG(LogCarla, Log, TEXT("Shared walker data with vehicle: %s"), *Vehicle->GetName());
                 }
             }
