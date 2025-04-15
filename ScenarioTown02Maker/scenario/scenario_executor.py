@@ -1,0 +1,54 @@
+# scenario_executor.py
+from utils.scenario_utils import spawn_vehicle, spawn_walker, set_autopilot
+import carla
+
+class ScenarioExecutor:
+    def __init__(self, world, bp_lib):
+        self.world = world
+        self.bp_lib = bp_lib
+        self.spawned_actors = []
+        
+    def execute(self, config):
+        try:         
+            # Spawn vehicles
+            for vehicle_cfg in config.get("vehicles", []):
+                try:
+                    vehicle_loc = vehicle_cfg["spawn_location"]
+                    vehicle_rot = vehicle_cfg["spawn_rotation"]
+                    vehicle_transform = carla.Transform(carla.Location(**vehicle_loc), carla.Rotation(**vehicle_rot))
+                    vehicle = spawn_vehicle(
+                        self.world,
+                        self.bp_lib,
+                        vehicle_cfg.get("model"),
+                        vehicle_transform,
+                    )
+                    self.spawned_actors.append(vehicle)
+                    
+                    set_autopilot(vehicle, vehicle_cfg.get("autopilot", False))
+                except Exception as e:
+                    print(f"Failed to spawn vehicle: {e}")
+            
+            # Spawn walkers
+            for walker_cfg in config.get("walkers", []):
+                try:
+                    walker_loc = walker_cfg["spawn_location"]
+                    walker_transform = carla.Transform(carla.Location(**walker_loc))
+                    walker = spawn_walker(self.world, self.bp_lib, walker_transform)
+                    self.spawned_actors.append(walker)
+                except Exception as e:
+                    print(f"Failed to spawn walker: {e}")
+                    
+        except Exception as e:
+            self.cleanup()
+            raise
+            
+    def cleanup(self):
+        for actor in self.spawned_actors:
+            if actor.is_alive:
+                try:
+                    if hasattr(actor, 'stop'):
+                        actor.stop()
+                    actor.destroy()
+                except Exception as e:
+                    print(f"Failed to destroy actor: {e}")
+        self.spawned_actors = []
