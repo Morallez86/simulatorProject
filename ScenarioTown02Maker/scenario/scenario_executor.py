@@ -36,7 +36,7 @@ class ScenarioExecutor:
 
                     vehicle_route_cfg = vehicle_cfg.get("route", [])
                     print(f"Vehicle route: {vehicle_route_cfg}")
-                    vehicle_route(self.traffic_manager, vehicle, vehicle_route_cfg)
+                    vehicle_route(self.traffic_manager, spawn_points, vehicle, vehicle_route_cfg)
                 except Exception as e:
                     print(f"Failed to spawn vehicle: {e}")
             

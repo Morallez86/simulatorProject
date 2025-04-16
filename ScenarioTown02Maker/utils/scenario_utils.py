@@ -27,14 +27,21 @@ def spawn_walker(world, bp_lib, transform):
         raise RuntimeError(f"Failed to spawn walker at {transform.location}.")
     return walker
 
-def vehicle_route(traffic_manager, vehicle, route):
+def vehicle_route(traffic_manager, spawn_points, vehicle, route):
     if not vehicle or not route:
         raise ValueError("Vehicle and route must be provided.")
+
+    if not spawn_points:
+        raise RuntimeError("No spawn points available in the map.")
+    
+    route_1 = []
+    for ind in route:
+        route_1.append(spawn_points[ind].location)
     
     traffic_manager.random_left_lanechange_percentage(vehicle, 0)
     traffic_manager.random_right_lanechange_percentage(vehicle, 0)
     traffic_manager.auto_lane_change(vehicle, False)
-    traffic_manager.set_path(vehicle, route)
+    traffic_manager.set_path(vehicle, route_1)
 
 
 def set_autopilot(vehicle, enable=True):
