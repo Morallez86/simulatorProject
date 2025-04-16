@@ -1,4 +1,16 @@
 # main.py
+import glob
+import os
+import sys
+
+try:
+    sys.path.append(glob.glob('../PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+        sys.version_info.major,
+        sys.version_info.minor,
+        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+except IndexError:
+    pass
+
 import carla
 import time
 from scenario.scenario_parser import load_scenario_from_json
@@ -13,16 +25,18 @@ def main():
         # Load world
         world = client.get_world()
         original_settings = world.get_settings()
+
+        # Load traffic manager
+        traffic_manager = client.get_trafficmanager()
         
-        # Set synchronous mode for precise control
+        # Set asynchronous mode
         settings = world.get_settings()
-        settings.synchronous_mode = True
-        settings.fixed_delta_seconds = 0.05
+        settings.synchronous_mode = False
         world.apply_settings(settings)
         
         # Initialize executor
         bp_lib = world.get_blueprint_library()
-        executor = ScenarioExecutor(world, bp_lib)
+        executor = ScenarioExecutor(world, traffic_manager, bp_lib)
         
         # Load and execute scenario
         config = load_scenario_from_json("config/sample_scenario.json")
@@ -31,8 +45,7 @@ def main():
         # Main simulation loop
         try:
             while True:
-                world.tick()
-                time.sleep(0.05)
+                time.sleep(0.05)  # Allow the simulation to run asynchronously
         except KeyboardInterrupt:
             print("\nScenario interrupted by user")
             

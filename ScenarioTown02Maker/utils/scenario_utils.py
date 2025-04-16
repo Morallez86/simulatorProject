@@ -1,16 +1,4 @@
-import glob
-import os
-import sys
 import random
-
-try:
-    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
-        sys.version_info.major,
-        sys.version_info.minor,
-        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
-except IndexError:
-    pass
-
 import carla
 
 def spawn_vehicle(world, bp_lib, model="vehicle.tesla.model3", transform=None):
@@ -38,6 +26,16 @@ def spawn_walker(world, bp_lib, transform):
     if not walker:
         raise RuntimeError(f"Failed to spawn walker at {transform.location}.")
     return walker
+
+def vehicle_route(traffic_manager, vehicle, route):
+    if not vehicle or not route:
+        raise ValueError("Vehicle and route must be provided.")
+    
+    traffic_manager.random_left_lanechange_percentage(vehicle, 0)
+    traffic_manager.random_right_lanechange_percentage(vehicle, 0)
+    traffic_manager.auto_lane_change(vehicle, False)
+    traffic_manager.set_path(vehicle, route)
+
 
 def set_autopilot(vehicle, enable=True):
     vehicle.set_autopilot(enable)

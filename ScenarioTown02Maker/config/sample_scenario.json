@@ -2,17 +2,9 @@
     "vehicles": [
       {
         "model": "vehicle.tesla.model3",
-        "spawn_location": {
-            "x": -3.5,
-            "y": 225,
-            "z": 1.0
-        },
-        "spawn_rotation": {
-            "pitch": 0.0,
-            "roll": 0.0,
-            "yaw": -90.0
-        },
-        "autopilot": false
+        "spawn_point": 1,
+        "route":[69,63],
+        "autopilot": true
       }
     ],
     "walkers": [
