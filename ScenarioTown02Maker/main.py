@@ -17,9 +17,10 @@ from scenario.scenario_parser import load_scenario_from_json
 from scenario.scenario_executor import ScenarioExecutor
 
 def main():
+    executor = None  # Ensure executor is defined for cleanup in finally block
     try:
         # Initialize CARLA client
-        client = carla.Client("localhost", 2000)
+        client = carla.Client("localhost", 2000) # type: ignore
         client.set_timeout(10.0)
         
         # Load world
@@ -45,7 +46,7 @@ def main():
         # Main simulation loop
         try:
             while True:
-                time.sleep(0.05)  # Allow the simulation to run asynchronously
+                world.wait_for_tick() # Allow the simulation to run asynchronously
         except KeyboardInterrupt:
             print("\nScenario interrupted by user")
             
@@ -53,9 +54,14 @@ def main():
         print(f"Error during scenario execution: {e}")
     finally:
         # Cleanup
-        executor.cleanup()
-        world.apply_settings(original_settings)
+        if executor:
+            executor.cleanup()
+        if 'world' in locals():
+            world.apply_settings(original_settings)
         print("Scenario cleanup complete")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nScript interrupted by user. Exiting...")

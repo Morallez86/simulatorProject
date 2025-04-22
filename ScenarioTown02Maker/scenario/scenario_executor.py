@@ -1,5 +1,5 @@
 # scenario_executor.py
-from utils.scenario_utils import spawn_vehicle, spawn_walker, set_autopilot, vehicle_route
+from utils.scenario_utils import spawn_vehicle, spawn_walker, set_autopilot, vehicle_route, walker_go_to_location, attach_sensors_to_vehicle
 import carla
 
 class ScenarioExecutor:
@@ -12,17 +12,24 @@ class ScenarioExecutor:
     def execute(self, config):
         try:         
             # Spawn vehicles
+            spawn_points = self.world.get_map().get_spawn_points()
+            if not spawn_points:
+                raise RuntimeError("No spawn points available in the map.")
+            
+            if config.get("spawn_walkersensor_v2v", False):
+                spectator = self.world.get_spectator()
+                spectator_sensors = attach_sensors_to_vehicle(self.world, self.bp_lib, spectator)
+                self.world.wait_for_tick()
+                self.spawned_actors.extend(spectator_sensors)
+
             for vehicle_cfg in config.get("vehicles", []):
                 try:
                     vehicle_loc = vehicle_cfg["spawn_point"]
-                    spawn_points = self.world.get_map().get_spawn_points()
-                    if not spawn_points:
-                        raise RuntimeError("No spawn points available in the map.")
                     spawn_point = spawn_points[vehicle_loc]
                     vehicle_loc = spawn_point.location
                     vehicle_rot = spawn_point.rotation
 
-                    vehicle_transform = carla.Transform(vehicle_loc, vehicle_rot)
+                    vehicle_transform = carla.Transform(vehicle_loc, vehicle_rot) # type: ignore
 
                     vehicle = spawn_vehicle(
                         self.world,
@@ -31,6 +38,11 @@ class ScenarioExecutor:
                         vehicle_transform,
                     )
                     self.spawned_actors.append(vehicle)
+
+                    if config.get("spawn_walkersensor_v2v", False):
+                        sensors = attach_sensors_to_vehicle(self.world, self.bp_lib, vehicle)
+                        self.world.wait_for_tick()
+                        self.spawned_actors.extend(sensors)
                     
                     set_autopilot(vehicle, vehicle_cfg.get("autopilot", False))
 
@@ -41,12 +53,29 @@ class ScenarioExecutor:
                     print(f"Failed to spawn vehicle: {e}")
             
             # Spawn walkers
+            
+            percentagePedestriansCrossing = 1.0 
+            self.world.set_pedestrians_cross_factor(percentagePedestriansCrossing)
+            self.world.wait_for_tick()
+
             for walker_cfg in config.get("walkers", []):
                 try:
-                    walker_loc = walker_cfg["spawn_location"]
-                    walker_transform = carla.Transform(carla.Location(**walker_loc))
-                    walker = spawn_walker(self.world, self.bp_lib, walker_transform)
+                    walker_spawn_index = walker_cfg["spawn_point"]
+                    walker, walker_controller = spawn_walker(
+                        self.world,
+                        self.bp_lib,
+                        walker_spawn_index,
+                    )
                     self.spawned_actors.append(walker)
+                    self.spawned_actors.append(walker_controller)
+
+                    walker_go_to_location_index = walker_cfg["go_to_point"]
+                    walker_go_to_location(
+                        spawn_points,
+                        walker_go_to_location_index,
+                        walker_controller,
+                        speed=walker_cfg.get("speed"),
+                    )
                 except Exception as e:
                     print(f"Failed to spawn walker: {e}")
                     
