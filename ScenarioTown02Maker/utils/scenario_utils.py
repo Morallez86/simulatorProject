@@ -1,6 +1,5 @@
 import random
 import carla
-import time
 from utils.walker_utils import get_walker_location_from_index, is_valid_walker_spawn_index
 
 def spawn_vehicle(world, bp_lib, model="vehicle.tesla.model3", transform=None):
@@ -48,22 +47,14 @@ def spawn_walker(world, bp_lib, walker_spawn_index):
         raise RuntimeError("No spawn points available in the map.")
     
     transform = get_walker_location_from_index(spawn_points, walker_spawn_index)
+    print(f"Spawning walker with location: {transform.location}")
     
     # Spawn the walker actor
     walker = world.spawn_actor(bp, transform)
     if not walker:
         raise RuntimeError(f"Failed to spawn walker at {transform.location}.")
     
-    # Spawn the WalkerAIController
-    walker_controller_bp = bp_lib.find('controller.ai.walker')
-    if not walker_controller_bp:
-        raise ValueError("Walker AI controller blueprint not found in blueprint library.")
-    
-    walker_controller = world.spawn_actor(walker_controller_bp, carla.Transform(carla.Location(z=0.0)), attach_to=walker)
-    if not walker_controller:
-        raise RuntimeError("Failed to spawn WalkerAIController.")
-    
-    return walker, walker_controller
+    return walker, transform.location
 
 def vehicle_route(traffic_manager, spawn_points, vehicle, route):
     if not vehicle or not route:
@@ -81,18 +72,18 @@ def vehicle_route(traffic_manager, spawn_points, vehicle, route):
     traffic_manager.auto_lane_change(vehicle, False)
     traffic_manager.set_path(vehicle, route_1)
 
-def walker_go_to_location(spawn_points, go_to_index_location, walker_controller, speed):
+def walker_go_to_location(walker, spawn_points, walker_location, go_to_index_location, speed):
     """
     Assigns a route to a walker in the CARLA simulator, with custom offsets for sidewalks.
 
     Args:
         spawn_points (list): List of carla.Transform objects representing spawn points.
         go_to_index_location (int): Index from spawn locations.
-        walker_controller (carla.WalkerAIController): The AI controller for the walker.
+        walker (carla.Actor): The walker actor.
         speed (float): Speed of the walker. Default is 1.4 m/s.
     """
-    if not walker_controller or go_to_index_location is None:
-        raise ValueError("Walker controller and route index must be provided.")
+    if not walker or go_to_index_location is None:
+        raise ValueError("Walker and route index must be provided.")
 
     if not isinstance(go_to_index_location, int):
         raise ValueError("Route index must be an integer.")
@@ -105,14 +96,37 @@ def walker_go_to_location(spawn_points, go_to_index_location, walker_controller,
 
     # Get the transform for the destination
     destination_transform = get_walker_location_from_index(spawn_points, go_to_index_location)
-    destination_transform.location.z = 0.5
-    print(f"Destination transform: {destination_transform}")
+    destination_transform.location.z = 0.0
     print(f"Destination location: {destination_transform.location}")
 
-    # Set the walker speed and destination
-    walker_controller.start()
-    walker_controller.go_to_location(destination_transform.location)
-    walker_controller.set_max_speed(speed)
+    # Calculate the vector between the current location and the destination
+    print(f"Current location: {walker_location}")
+    destination_location = destination_transform.location
+    movement_vector = carla.Vector3D(
+        x=destination_location.x - walker_location.x,
+        y=destination_location.y - walker_location.y,
+        z=destination_location.z - walker_location.z
+    )
+    print(f"Movement vector: {movement_vector}")
+
+    # Normalize the movement vector to get the direction
+    magnitude = (movement_vector.x**2 + movement_vector.y**2 + movement_vector.z**2)**0.5
+    if magnitude > 0:
+        direction = carla.Vector3D(
+            x=movement_vector.x / magnitude,
+            y=movement_vector.y / magnitude,
+            z=movement_vector.z / magnitude
+        )
+    else:
+        direction = carla.Vector3D(0.0, 0.0, 0.0)
+
+    print(f"Normalized direction: {direction}")
+
+    # Set the walker speed and direction
+    walker_control = carla.WalkerControl(direction, speed, False)
+    walker.apply_control(walker_control)
+
+    return walker
 
 def set_autopilot(vehicle, enable=True):
     vehicle.set_autopilot(enable)

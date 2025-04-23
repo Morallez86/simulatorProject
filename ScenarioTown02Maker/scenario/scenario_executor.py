@@ -10,9 +10,20 @@ class ScenarioExecutor:
         self.spawned_actors = []
         
     def execute(self, config):
-        try:         
-            # Spawn vehicles
+        try:
+
             spawn_points = self.world.get_map().get_spawn_points()
+            
+            # Realocate spectator to spawn point
+            spectator = self.world.get_spectator()
+            print(f"Spectator location: {spectator.get_transform().location}")
+            if config.get("spectator"):
+                for spectator_cfg in config["spectator"]:
+                    spectator_loc = spectator_cfg["spawn_point"]
+                    spawn_point = spawn_points[spectator_loc]
+                    spectator.set_transform(spawn_point)
+
+            # Spawn vehicles
             if not spawn_points:
                 raise RuntimeError("No spawn points available in the map.")
             
@@ -61,21 +72,22 @@ class ScenarioExecutor:
             for walker_cfg in config.get("walkers", []):
                 try:
                     walker_spawn_index = walker_cfg["spawn_point"]
-                    walker, walker_controller = spawn_walker(
+                    walker, walker_location= spawn_walker(
                         self.world,
                         self.bp_lib,
                         walker_spawn_index,
                     )
-                    self.spawned_actors.append(walker)
-                    self.spawned_actors.append(walker_controller)
 
                     walker_go_to_location_index = walker_cfg["go_to_point"]
                     walker_go_to_location(
+                        walker,
                         spawn_points,
+                        walker_location,
                         walker_go_to_location_index,
-                        walker_controller,
                         speed=walker_cfg.get("speed"),
                     )
+
+                    self.spawned_actors.append(walker)
                 except Exception as e:
                     print(f"Failed to spawn walker: {e}")
                     

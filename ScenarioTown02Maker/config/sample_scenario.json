@@ -1,4 +1,9 @@
 {
+    "spectator": [
+      {
+        "spawn_point": 6
+      }
+    ],
     "vehicles": [
       {
         "model": "vehicle.tesla.model3",
@@ -10,7 +15,7 @@
     "walkers": [
       {
         "spawn_point": 99,
-        "go_to_point": 100,
+        "go_to_point": 5,
         "speed": 4.0
       }
     ],
