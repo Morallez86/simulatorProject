@@ -1,23 +1,29 @@
 {
     "spectator": [
-      {
-        "spawn_point": 6
-      }
+        {
+            "spawn_point": 6,
+            "spawn_walkersensor_v2v": true
+        }
     ],
     "vehicles": [
-      {
-        "model": "vehicle.tesla.model3",
-        "spawn_point": 3,
-        "route":[69,63],
-        "autopilot": true
-      }
+        {
+            "model": "vehicle.tesla.model3",
+            "spawn_point": 3,
+            "route": [69, 63],
+            "autopilot": true,
+            "spawn_walkersensor_v2v": false
+        }
     ],
     "walkers": [
-      {
-        "spawn_point": 99,
-        "go_to_point": 5,
-        "speed": 4.0
-      }
-    ],
-    "spawn_walkersensor_v2v": true
-  }
+        {
+            "spawn_point": 97,
+            "go_to_point": [5, 69, 65],
+            "speed": 4.0
+        },
+        {
+            "spawn_point": 100,
+            "go_to_point": [99, 5, 69, 65],
+            "speed": 3.5
+        }
+    ]
+}

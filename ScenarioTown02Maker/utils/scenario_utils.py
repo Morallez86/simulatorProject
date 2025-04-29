@@ -3,6 +3,22 @@ import carla
 from utils.walker_utils import get_walker_location_from_index, is_valid_walker_spawn_index
 
 def spawn_vehicle(world, bp_lib, model="vehicle.tesla.model3", transform=None):
+    """
+    Spawns a vehicle in the CARLA world.
+
+    Args:
+        world (carla.World): The CARLA world instance.
+        bp_lib (carla.BlueprintLibrary): The blueprint library to find the vehicle blueprint.
+        model (str): The model of the vehicle to spawn. Default is "vehicle.tesla.model3".
+        transform (carla.Transform): The transform where the vehicle will be spawned. If None, a random spawn point is used.
+
+    Returns:
+        carla.Actor: The spawned vehicle actor.
+
+    Raises:
+        ValueError: If the vehicle blueprint is not found.
+        RuntimeError: If the vehicle fails to spawn.
+    """
     bp = bp_lib.find(model)
     if not bp:
         raise ValueError(f"Vehicle model '{model}' not found in blueprint library.")
@@ -25,11 +41,11 @@ def spawn_walker(world, bp_lib, walker_spawn_index):
         walker_spawn_index (int): The index of the spawn point.
 
     Returns:
-        tuple: A tuple containing the walker actor and its AI controller.
+        carla.Actor: The spawned walker actor.
 
     Raises:
         ValueError: If the walker blueprint is not found or the index is invalid.
-        RuntimeError: If the walker or controller fails to spawn.
+        RuntimeError: If the walker fails to spawn.
     """
     bp = bp_lib.find('walker.pedestrian.0001')
     if not bp:
@@ -54,9 +70,22 @@ def spawn_walker(world, bp_lib, walker_spawn_index):
     if not walker:
         raise RuntimeError(f"Failed to spawn walker at {transform.location}.")
     
-    return walker, transform.location
+    return walker
 
 def vehicle_route(traffic_manager, spawn_points, vehicle, route):
+    """
+    Assigns a route to a vehicle in the CARLA simulator.
+
+    Args:
+        traffic_manager (carla.TrafficManager): The traffic manager instance.
+        spawn_points (list): List of carla.Transform objects representing spawn points.
+        vehicle (carla.Actor): The vehicle actor.
+        route (list): List of indices representing the route.
+
+    Raises:
+        ValueError: If the vehicle or route is not provided.
+        RuntimeError: If no spawn points are available.
+    """
     if not vehicle or not route:
         raise ValueError("Vehicle and route must be provided.")
 
@@ -77,10 +106,17 @@ def walker_go_to_location(walker, spawn_points, walker_location, go_to_index_loc
     Assigns a route to a walker in the CARLA simulator, with custom offsets for sidewalks.
 
     Args:
-        spawn_points (list): List of carla.Transform objects representing spawn points.
-        go_to_index_location (int): Index from spawn locations.
         walker (carla.Actor): The walker actor.
+        spawn_points (list): List of carla.Transform objects representing spawn points.
+        walker_location (carla.Location): The current location of the walker.
+        go_to_index_location (int): Index from spawn locations.
         speed (float): Speed of the walker. Default is 1.4 m/s.
+
+    Returns:
+        carla.Actor: The walker actor with updated control.
+
+    Raises:
+        ValueError: If the walker, route index, or spawn points are invalid.
     """
     if not walker or go_to_index_location is None:
         raise ValueError("Walker and route index must be provided.")
@@ -120,8 +156,6 @@ def walker_go_to_location(walker, spawn_points, walker_location, go_to_index_loc
     else:
         direction = carla.Vector3D(0.0, 0.0, 0.0)
 
-    print(f"Normalized direction: {direction}")
-
     # Set the walker speed and direction
     walker_control = carla.WalkerControl(direction, speed, False)
     walker.apply_control(walker_control)
@@ -129,6 +163,13 @@ def walker_go_to_location(walker, spawn_points, walker_location, go_to_index_loc
     return walker
 
 def set_autopilot(vehicle, enable=True):
+    """
+    Enables or disables autopilot for a vehicle.
+
+    Args:
+        vehicle (carla.Actor): The vehicle actor.
+        enable (bool): Whether to enable autopilot. Default is True.
+    """
     vehicle.set_autopilot(enable)
 
 def attach_sensors_to_vehicle(world, bp_lib, vehicle):
@@ -142,6 +183,9 @@ def attach_sensors_to_vehicle(world, bp_lib, vehicle):
 
     Returns:
         list: A list of spawned sensor actors.
+
+    Raises:
+        Exception: If the sensors fail to attach.
     """
     try:
         # Find sensor blueprints

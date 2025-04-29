@@ -15,6 +15,7 @@ import carla
 import time
 from scenario.scenario_parser import load_scenario_from_json
 from scenario.scenario_executor import ScenarioExecutor
+from utils.walker_route_manager import WalkerManager
 
 def main():
     executor = None  # Ensure executor is defined for cleanup in finally block
@@ -34,10 +35,18 @@ def main():
         settings = world.get_settings()
         settings.synchronous_mode = False
         world.apply_settings(settings)
+
+        # Get spawn points
+        spawn_points = world.get_map().get_spawn_points()
+        
+        # Initialize walker manager
+        if not spawn_points:
+            raise RuntimeError("No spawn points available in the map.")
+        walker_manager = WalkerManager(world, spawn_points)
         
         # Initialize executor
         bp_lib = world.get_blueprint_library()
-        executor = ScenarioExecutor(world, traffic_manager, bp_lib)
+        executor = ScenarioExecutor(world, traffic_manager, bp_lib, spawn_points, walker_manager)
         
         # Load and execute scenario
         config = load_scenario_from_json("config/sample_scenario.json")
@@ -47,6 +56,8 @@ def main():
         try:
             while True:
                 world.wait_for_tick() # Allow the simulation to run asynchronously
+                walker_manager.update_walkers()
+
         except KeyboardInterrupt:
             print("\nScenario interrupted by user")
             

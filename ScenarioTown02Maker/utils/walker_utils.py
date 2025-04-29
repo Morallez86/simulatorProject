@@ -8,6 +8,15 @@ BOTTOM_SIDEWALK = [24, 22, 18, 14, 93, 16, 81, 0, 77, 79, 73, 75, 12, 10, 8, 6, 
 UNAVAILABLE_SPAWN_INDEXES = [1, 2, 17, 20, 41, 42, 51, 52, 53, 56, 87]
 
 def get_walker_offset_for_index(index):
+    """
+    Returns an offset for a walker based on its spawn index.
+
+    Args:
+        index (int): The spawn index of the walker.
+
+    Returns:
+        tuple: A tuple (x, y, z) representing the offset to apply to the spawn location.
+    """
     if index in LEFT_SIDEWALK:
         return (0, -4, 0)
     elif index in RIGHT_SIDEWALK:
@@ -19,19 +28,32 @@ def get_walker_offset_for_index(index):
     return (0, 0, 0)  # Default or fallback
 
 def get_walker_location_from_index(spawn_points, index):
+    """
+    Calculates the transform for a walker based on its spawn index and offset.
+
+    Args:
+        spawn_points (list): List of carla.Transform objects representing spawn points.
+        index (int): The spawn index of the walker.
+
+    Returns:
+        carla.Transform: The transform for the walker, including the offset.
+
+    Raises:
+        IndexError: If the index is out of range for the spawn points list.
+    """
     if index >= len(spawn_points):
         raise IndexError("Invalid spawn point index.")
 
     transform = spawn_points[index]
     offset = get_walker_offset_for_index(index)
 
-    new_location = carla.Location( # type: ignore
+    new_location = carla.Location(  # type: ignore
         x=transform.location.x + offset[0],
         y=transform.location.y + offset[1],
         z=transform.location.z + offset[2],
     )
 
-    return carla.Transform(new_location, transform.rotation) # type: ignore
+    return carla.Transform(new_location, transform.rotation)  # type: ignore
 
 def is_valid_walker_spawn_index(index):
     """
