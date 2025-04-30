@@ -1,5 +1,4 @@
-from utils.walker_utils import get_walker_location_from_index
-from utils.scenario_utils import walker_go_to_location
+from utils.walker_utils import get_walker_location_from_index, walker_go_to_location
 
 class WalkerManager:
     def __init__(self, world, spawn_points):

@@ -1,5 +1,6 @@
 # scenario_executor.py
-from utils.scenario_utils import spawn_vehicle, spawn_walker, set_autopilot, vehicle_route, attach_sensors_to_vehicle
+from utils.scenario_utils import spawn_vehicle, set_autopilot, vehicle_route, attach_sensors_to_vehicle
+from utils.walker_utils import spawn_walker
 import carla
 
 class ScenarioExecutor:
@@ -15,18 +16,18 @@ class ScenarioExecutor:
         try:
             
             # Relocate spectator to spawn point and attach sensors if needed
-            spectator = self.world.get_spectator()
-            if config.get("spectator"):
-                for spectator_cfg in config["spectator"]:
-                    spectator_loc = spectator_cfg["spawn_point"]
-                    spawn_point = self.spawn_points[spectator_loc]
-                    spectator.set_transform(spawn_point)
+            spectator_cfg = config.get("spectator")
+            if spectator_cfg:
+                spectator_loc = spectator_cfg["spawn_point"]
+                spawn_point = self.spawn_points[spectator_loc]
+                spectator = self.world.get_spectator()
+                spectator.set_transform(spawn_point)
 
-                    # Attach sensors to the spectator if spawn_walkersensor_v2v is True
-                    if spectator_cfg.get("spawn_walkersensor_v2v", False):
-                        spectator_sensors = attach_sensors_to_vehicle(self.world, self.bp_lib, spectator)
-                        self.world.wait_for_tick()
-                        self.spawned_actors.extend(spectator_sensors)
+                # Attach sensors to the spectator if spawn_walkersensor_v2v is True
+                if spectator_cfg.get("spawn_walkersensor_v2v", False):
+                    spectator_sensors = attach_sensors_to_vehicle(self.world, self.bp_lib, spectator)
+                    self.world.wait_for_tick()
+                    self.spawned_actors.extend(spectator_sensors)
 
             # Spawn vehicles
             if not self.spawn_points:
@@ -55,7 +56,11 @@ class ScenarioExecutor:
                         self.world.wait_for_tick()
                         self.spawned_actors.extend(sensors)
 
-                    set_autopilot(vehicle, vehicle_cfg.get("autopilot", False))
+                    set_autopilot(vehicle, True)
+
+                    # Set vehicle distance to leading vehicle
+                    safe_distance_traffic_manager = config.get("scenario_config", {}).get("safe_distance_between_vehicles", 10.0)
+                    self.traffic_manager.distance_to_leading_vehicle(vehicle, safe_distance_traffic_manager) 
 
                     vehicle_route_cfg = vehicle_cfg.get("route", [])
                     print(f"Vehicle route: {vehicle_route_cfg}")
@@ -85,6 +90,17 @@ class ScenarioExecutor:
                     self.walker_manager.add_walker(walker, walker_route, walker_speed)
                 except Exception as e:
                     print(f"Failed to spawn walker: {e}")
+            
+            actors = self.world.get_actors().filter("vehicle.*")  # Filter for vehicles
+            print(f"Total vehicles in the world: {len(actors)}")
+
+            for actor in actors:
+                # Check if the actor is managed by the TrafficManager
+                try:
+                    is_managed = self.traffic_manager.get_vehicle_percentage_speed_difference(actor) is not None
+                except Exception:
+                    is_managed = False  # If the actor is not managed, handle gracefully
+                print(f"Actor ID: {actor.id}, Type: {actor.type_id}, Managed by TrafficManager: {is_managed}")
                     
         except Exception as e:
             self.cleanup()

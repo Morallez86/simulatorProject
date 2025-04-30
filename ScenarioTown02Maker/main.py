@@ -16,6 +16,7 @@ import time
 from scenario.scenario_parser import load_scenario_from_json
 from scenario.scenario_executor import ScenarioExecutor
 from utils.walker_route_manager import WalkerManager
+from utils.scenario_utils import control_vehicles_near_spectator
 
 def main():
     executor = None  # Ensure executor is defined for cleanup in finally block
@@ -50,6 +51,10 @@ def main():
         
         # Load and execute scenario
         config = load_scenario_from_json("config/sample_scenario.json")
+
+        # Extract safe distance from scenario_config
+        safe_distance = config.get("scenario_config", {}).get("safe_distance_to_spectator", 10.0)
+
         executor.execute(config)
         
         # Main simulation loop
@@ -57,6 +62,10 @@ def main():
             while True:
                 world.wait_for_tick() # Allow the simulation to run asynchronously
                 walker_manager.update_walkers()
+
+                # Control vehicles near the spectator
+                spectator = world.get_spectator()
+                control_vehicles_near_spectator(world, traffic_manager, spectator, safe_distance=safe_distance)
 
         except KeyboardInterrupt:
             print("\nScenario interrupted by user")
