@@ -1,19 +1,19 @@
 {
     "scenario_config": {
-        "safe_distance_to_spectator": 20.0,
+        "safe_distance_to_spectator": 10.0,
         "safe_distance_between_vehicles": 5.0
     },
     "spectator": {
-        "spawn_point": 5,
+        "spawn_point": 12,
         "spawn_walkersensor_v2v": true
     },
     "vehicles": [
         {
-            "model": "vehicle.tesla.model3",
+            "model": "vehicle.mercedes.mercedesvr",
             "spawn_point": 3,
             "route": [69],
             "stop_at_end": true,
-            "spawn_walkersensor_v2v": false
+            "spawn_walkersensor_v2v": true
         },
         {
             "model": "vehicle.tesla.model3",
@@ -25,8 +25,13 @@
     ],
     "walkers": [
         {
-            "spawn_point": 100,
-            "go_to_point": [99, 5, 69, 65],
+            "spawn_point": 7,
+            "go_to_point": [9, 11],
+            "speed": 3.5
+        },
+        {
+            "spawn_point": 99,
+            "go_to_point": [3, 47, 45],
             "speed": 3.5
         }
     ]

@@ -117,7 +117,7 @@ def attach_sensors_to_vehicle(world, bp_lib, vehicle):
 
 def control_vehicles_near_spectator(world, traffic_manager, spectator, safe_distance=10.0):
     """
-    Stops vehicles managed by the TrafficManager if they get too close to the spectator.
+    Stops vehicles managed by the TrafficManager if they get too close and are in front of the spectator.
 
     Args:
         world (carla.World): The CARLA world instance.
@@ -126,17 +126,25 @@ def control_vehicles_near_spectator(world, traffic_manager, spectator, safe_dist
         safe_distance (float): The minimum safe distance from the spectator in meters.
     """
     spectator_location = spectator.get_location()
-    vehicles = world.get_actors().filter("vehicle.*")  # Get all vehicles in the world
+    map = world.get_map()
+    spectator_wp = map.get_waypoint(spectator_location, project_to_road=True, lane_type=carla.LaneType.Driving)
+    vehicles = world.get_actors().filter("vehicle.*")
 
     for vehicle in vehicles:
         vehicle_location = vehicle.get_location()
         distance = vehicle_location.distance(spectator_location)
+        vehicle_wp = map.get_waypoint(vehicle_location, project_to_road=True, lane_type=carla.LaneType.Driving)
 
-        if distance < safe_distance:
-            # Stop the vehicle if it is too close to the spectator
-            print(f"Stopping vehicle {vehicle.id} (distance: {distance:.2f} meters)")
+        # Check if on the same road and lane direction
+        same_lane_sign = vehicle_wp.lane_id * spectator_wp.lane_id > 0  # same direction
+
+        # Check if spectator is in front of the vehicle
+        vehicle_forward = vehicle.get_transform().get_forward_vector()
+        to_spectator = spectator_location - vehicle_location
+        to_spectator_norm = to_spectator.make_unit_vector()
+        dot = vehicle_forward.x * to_spectator_norm.x + vehicle_forward.y * to_spectator_norm.y + vehicle_forward.z * to_spectator_norm.z
+
+        if distance < safe_distance and same_lane_sign and dot > 0.7:
             vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
         else:
-            # Re-enable autopilot if the vehicle is at a safe distance
-            if vehicle.attributes.get("role_name") == "autopilot":
-                vehicle.set_autopilot(True, traffic_manager.get_port())
+            vehicle.set_autopilot(True, traffic_manager.get_port())

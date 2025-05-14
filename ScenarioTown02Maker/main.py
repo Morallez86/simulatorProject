@@ -47,6 +47,7 @@ def main():
         
         # Initialize executor
         bp_lib = world.get_blueprint_library()
+
         executor = ScenarioExecutor(world, traffic_manager, bp_lib, spawn_points, walker_manager)
         
         # Load and execute scenario
